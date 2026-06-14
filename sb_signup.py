@@ -391,11 +391,40 @@ def step_phone(sb):
     log(f"after phone url={sb.get_current_url()}")
     return True
 
+def local_chrome_profile():
+    """Path to this machine's REAL Google Chrome user-data dir (warm cookies + Google
+    reputation = a much higher reCAPTCHA score than a fresh throwaway profile)."""
+    import platform
+    s = platform.system()
+    if s == "Windows":
+        base = os.environ.get("LOCALAPPDATA", os.path.expanduser(r"~\AppData\Local"))
+        return os.path.join(base, "Google", "Chrome", "User Data")
+    if s == "Darwin":
+        return os.path.expanduser("~/Library/Application Support/Google/Chrome")
+    return os.path.expanduser("~/.config/google-chrome")
+
 if __name__=="__main__":
     # Phone verification is intentionally bypassed (Close Account escape), so no
     # TextVerified keys are required — a run needs only DATABASE_URL to save the account.
     hold = int(os.environ.get("HOLD_OPEN_SEC", "20"))
-    with SB(uc=True, locale="en-US", headed=True) as sb:
+
+    # Run on the machine's REAL local Chrome profile. CLOSE Chrome first — Chrome locks
+    # its profile while running, so launch fails if it's open. (CHROME_PROFILE_DIR can
+    # override the path; falls back to a dedicated dir if no real Chrome profile exists.)
+    prof = os.environ.get("CHROME_PROFILE_DIR") or local_chrome_profile()
+    if not os.path.isdir(prof):
+        prof = os.path.join(config.ROOT, "chrome-sb")
+        try: os.makedirs(prof, exist_ok=True)
+        except Exception: pass
+    log(f"using local Chrome profile: {prof}")
+
+    try:
+        sb_ctx = SB(uc=True, locale="en-US", headed=True, user_data_dir=prof)
+    except Exception as e:
+        log(f"could not start Chrome with the local profile ({e}). "
+            f"CLOSE Google Chrome completely (it locks the profile) and re-run.")
+        raise
+    with sb_ctx as sb:
         try:
             run(sb)
         except Exception as e:

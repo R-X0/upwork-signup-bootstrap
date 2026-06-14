@@ -137,7 +137,8 @@ Say "Installing Python dependencies (this can take a few minutes) ..."
 # --- 5. write .env -------------------------------------------------------------
 Say "Writing .env ..."
 $lines = @()
-if ($env:DATABASE_URL) { $lines += "DATABASE_URL=$($env:DATABASE_URL)" }
+if ($env:DATABASE_URL)      { $lines += "DATABASE_URL=$($env:DATABASE_URL)" }
+if ($env:CHROME_PROFILE_DIR) { $lines += "CHROME_PROFILE_DIR=$($env:CHROME_PROFILE_DIR)" }
 if ($env:TV_API_KEY)   { $lines += "TV_API_KEY=$($env:TV_API_KEY)" }
 if ($env:TV_USER)      { $lines += "TV_USER=$($env:TV_USER)" }
 if ($env:EMAIL_WORKER) { $lines += "EMAIL_WORKER=$($env:EMAIL_WORKER)" }

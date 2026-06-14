@@ -5,6 +5,8 @@
 chrome-profile/
 chrome-run/
 chrome-desk/
+chrome-sb/
+chrome-sb*/
 chrome-profile*/
 __pycache__/
 *.pyc
