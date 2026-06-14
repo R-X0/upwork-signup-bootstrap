@@ -392,8 +392,7 @@ def step_phone(sb):
     return True
 
 def local_chrome_profile():
-    """Path to this machine's REAL Google Chrome user-data dir (warm cookies + Google
-    reputation = a much higher reCAPTCHA score than a fresh throwaway profile)."""
+    """Path to this machine's REAL Google Chrome user-data dir."""
     import platform
     s = platform.system()
     if s == "Windows":
@@ -403,26 +402,65 @@ def local_chrome_profile():
         return os.path.expanduser("~/Library/Application Support/Google/Chrome")
     return os.path.expanduser("~/.config/google-chrome")
 
+def close_all_chrome():
+    """Force-close every Chrome so its profile/cookies unlock. The user explicitly
+    authorized this (it discards open tabs). Does NOT touch our own SB driver."""
+    import platform, subprocess
+    if platform.system() == "Windows":
+        for img in ("chrome.exe", "chromedriver.exe", "uc_driver.exe"):
+            try: subprocess.run(["taskkill", "/F", "/IM", img], capture_output=True)
+            except Exception: pass
+    else:
+        for pat in ("Google Chrome", "chromedriver", "uc_driver"):
+            try: subprocess.run(["pkill", "-f", pat], capture_output=True)
+            except Exception: pass
+    time.sleep(2)
+
+def seed_warm_profile():
+    """Build a LEAN warm profile from the real local Chrome: copy ONLY Local State +
+    the cookie jar (carries the Google login + _GRECAPTCHA reputation that lifts the
+    reCAPTCHA score). Deliberately skips Preferences/extensions/caches — those drag in
+    session-restore that hangs SeleniumBase and bloat the profile to multiple GB.
+    Chrome must already be closed (call close_all_chrome first). Returns the dest dir."""
+    import shutil
+    dest = os.path.join(config.ROOT, "chrome-sb")
+    default = os.path.join(dest, "Default")
+    os.makedirs(os.path.join(default, "Network"), exist_ok=True)
+    src = local_chrome_profile()
+    if os.path.isdir(src):
+        def cp(*rel):
+            s = os.path.join(src, *rel); d = os.path.join(dest, *rel)
+            try:
+                if os.path.exists(s):
+                    os.makedirs(os.path.dirname(d), exist_ok=True); shutil.copy2(s, d)
+                    log(f"warm-seed: {os.path.join(*rel)} ({os.path.getsize(s)//1024} KB)")
+            except Exception as e:
+                log(f"warm-seed {os.path.join(*rel)} skipped: {e}")
+        cp("Local State")
+        cp("Default", "Network", "Cookies")
+        cp("Default", "Cookies")  # legacy (older Chrome)
+    else:
+        log(f"no local Chrome profile at {src} — using a cold dedicated profile")
+    return dest
+
 if __name__=="__main__":
     # Phone verification is intentionally bypassed (Close Account escape), so no
     # TextVerified keys are required — a run needs only DATABASE_URL to save the account.
     hold = int(os.environ.get("HOLD_OPEN_SEC", "20"))
 
-    # Run on the machine's REAL local Chrome profile. CLOSE Chrome first — Chrome locks
-    # its profile while running, so launch fails if it's open. (CHROME_PROFILE_DIR can
-    # override the path; falls back to a dedicated dir if no real Chrome profile exists.)
-    prof = os.environ.get("CHROME_PROFILE_DIR") or local_chrome_profile()
-    if not os.path.isdir(prof):
-        prof = os.path.join(config.ROOT, "chrome-sb")
-        try: os.makedirs(prof, exist_ok=True)
-        except Exception: pass
-    log(f"using local Chrome profile: {prof}")
+    # Close any running Chrome (unlocks the real profile), then run on a lean profile
+    # warm-seeded from your real Chrome's cookies (high reCAPTCHA reputation, no hang).
+    # Set CLOSE_CHROME=0 to skip the auto-close; CHROME_PROFILE_DIR to use a fixed dir.
+    if os.environ.get("CLOSE_CHROME", "1") != "0":
+        log("closing any running Chrome (authorized) ...")
+        close_all_chrome()
+    prof = os.environ.get("CHROME_PROFILE_DIR") or seed_warm_profile()
+    log(f"using Chrome profile: {prof}")
 
     try:
         sb_ctx = SB(uc=True, locale="en-US", headed=True, user_data_dir=prof)
     except Exception as e:
-        log(f"could not start Chrome with the local profile ({e}). "
-            f"CLOSE Google Chrome completely (it locks the profile) and re-run.")
+        log(f"could not start Chrome ({e}). If Chrome is still open, close it and re-run.")
         raise
     with sb_ctx as sb:
         try:
