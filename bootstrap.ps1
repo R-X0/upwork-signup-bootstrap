@@ -17,7 +17,12 @@
 #>
 
 $ErrorActionPreference = 'Stop'
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13 -bor [Net.ServicePointManager]::SecurityProtocol
+# Force TLS 1.2 (GitHub requires it; Windows PowerShell 5.1 defaults to older). Tls13 isn't a
+# valid enum on .NET Framework 4.x, so don't reference it — Tls12 is enough.
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+
+# -UseBasicParsing avoids the IE-engine hang on a fresh machine where IE was never initialized.
+$PSDefaultParameterValues['Invoke-WebRequest:UseBasicParsing'] = $true
 
 $REPO_ZIP = 'https://github.com/R-X0/upwork-signup-bootstrap/archive/refs/heads/main.zip'
 $DEST     = Join-Path $env:USERPROFILE 'upwork-signup-bot'
