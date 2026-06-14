@@ -1,0 +1,8 @@
+# Upwork signup bot — Python dependencies.
+# Pinned-ish to avoid surprise breakage on a fresh machine; bump deliberately.
+
+seleniumbase>=4.30,<5          # UC-mode stealth Chrome pipeline (sb_signup.py)
+curl_cffi>=0.7                 # TLS-impersonating HTTP (email worker, TextVerified, GraphQL)
+psycopg2-binary>=2.9           # Postgres driver for the accounts database (db.py)
+patchright>=1.40               # stealth Playwright (hybrid.py path; optional)
+pyautogui>=0.9.54              # real-cursor clicks for uc_gui_click_captcha on a GUI desktop

@@ -1,0 +1,10 @@
+name = "email-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+kv_namespaces = [
+  { binding = "EMAIL_CODES", id = "91e2e9ccefa24efd80d67946fa9f5634" }
+]
+
+[vars]
+ALLOWED_DOMAIN = "eldenstats.com"

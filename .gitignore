@@ -1,0 +1,22 @@
+# secrets — never commit real keys (use .env.example as the template)
+.env
+
+# only exclude the multi-GB regenerable browser profiles + caches
+chrome-profile/
+chrome-run/
+chrome-desk/
+chrome-profile*/
+__pycache__/
+*.pyc
+*.log
+
+# account credentials + rented numbers — NEVER push plaintext creds to the remote
+cap/accounts.jsonl
+cap/run_creds.txt
+cap/creds.txt
+cap/tv.txt
+chrome-run*/
+chrome-desk*/
+
+# debug screenshots (account states / faces / modals) — do not push
+cap/*.png
